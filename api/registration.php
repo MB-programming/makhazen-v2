@@ -95,7 +95,7 @@ if ($method === 'POST' && empty($_GET['admin'])) {
     $national_id   = trim($body['national_id']  ?? '');
     $city          = clean($body['city']         ?? '');
     $gender        = trim($body['gender']        ?? '');
-    $prev_customer = isset($body['prev_customer']) ? (int)(bool)$body['prev_customer'] : -1;
+    $prev_customer = isset($body['prev_customer']) ? (int)(bool)$body['prev_customer'] : 0;
     $terms         = !empty($body['terms']);
 
     // ── Validate ─────────────────────────────────────────────
@@ -112,8 +112,6 @@ if ($method === 'POST' && empty($_GET['admin'])) {
         $errors[] = 'المدينة مطلوبة';
     if (!in_array($gender, ['male', 'female']))
         $errors[] = 'يرجى اختيار الجنس';
-    if ($prev_customer === -1)
-        $errors[] = 'يرجى الإجابة على سؤال التعامل السابق مع مخازن العناية';
     if (!$terms)
         $errors[] = 'يجب الموافقة على الشروط والأحكام';
 
