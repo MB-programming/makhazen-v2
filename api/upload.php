@@ -72,17 +72,23 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
+// الأبعاد القصوى حسب نوع الرفع
+$maxWidths = ['logo' => 400, 'cover' => 900, 'slider' => 1440];
+$maxW      = $maxWidths[$type] ?? 900;
+$quality   = ($type === 'logo') ? 82 : 80;
+
 // اسم الملف الجديد بصيغة WebP
 $filename = $prefix . uniqid() . '.webp';
 $destPath = $uploadDir . $filename;
 
 // تحويل الصورة إلى WebP بـ GD
+ini_set('memory_limit', '512M');
 $src = null;
 switch ($file['type']) {
     case 'image/jpeg': $src = imagecreatefromjpeg($file['tmp_name']); break;
     case 'image/png':
         $src = imagecreatefrompng($file['tmp_name']);
-        imagealphablending($src, true);
+        imagealphablending($src, false);
         imagesavealpha($src, true);
         break;
     case 'image/webp': $src = imagecreatefromwebp($file['tmp_name']); break;
@@ -93,7 +99,22 @@ if (!$src) {
     jsonResponse(['success' => false, 'message' => 'فشل قراءة الصورة'], 500);
 }
 
-$ok = imagewebp($src, $destPath, 85);
+// تصغير الصورة إذا أكبر من الحد الأقصى
+$origW = imagesx($src);
+$origH = imagesy($src);
+if ($origW > $maxW) {
+    $newH    = intval($origH * ($maxW / $origW));
+    $resized = imagecreatetruecolor($maxW, $newH);
+    imagealphablending($resized, false);
+    imagesavealpha($resized, true);
+    $bg = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+    imagefilledrectangle($resized, 0, 0, $maxW, $newH, $bg);
+    imagecopyresampled($resized, $src, 0, 0, 0, 0, $maxW, $newH, $origW, $origH);
+    imagedestroy($src);
+    $src = $resized;
+}
+
+$ok = imagewebp($src, $destPath, $quality);
 imagedestroy($src);
 
 if (!$ok) {
