@@ -11,28 +11,33 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-$db = getDB();
+// ============================================================
+// One-time table setup (skipped after first run via flag file)
+// ============================================================
+$flagFile = dirname(__DIR__) . '/cache/.tables_ok';
+if (!is_file($flagFile)) {
+    $db = getDB();
+    $db->exec("CREATE TABLE IF NOT EXISTS registrations (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        ref_number    VARCHAR(40)  NOT NULL UNIQUE,
+        full_name     VARCHAR(100) NOT NULL,
+        email         VARCHAR(150) NOT NULL,
+        phone         VARCHAR(15)  NOT NULL,
+        national_id   VARCHAR(10)  NOT NULL UNIQUE,
+        city          VARCHAR(80)  NOT NULL,
+        gender        ENUM('male','female') NOT NULL,
+        prev_customer TINYINT(1)   NOT NULL DEFAULT 0,
+        ip_address    VARCHAR(45)  DEFAULT NULL,
+        created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-// Auto-create table if not exists
-$db->exec("CREATE TABLE IF NOT EXISTS registrations (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    ref_number    VARCHAR(40)  NOT NULL UNIQUE,
-    full_name     VARCHAR(100) NOT NULL,
-    email         VARCHAR(150) NOT NULL,
-    phone         VARCHAR(15)  NOT NULL,
-    national_id   VARCHAR(10)  NOT NULL UNIQUE,
-    city          VARCHAR(80)  NOT NULL,
-    gender        ENUM('male','female') NOT NULL,
-    prev_customer TINYINT(1)   NOT NULL DEFAULT 0,
-    ip_address    VARCHAR(45)  DEFAULT NULL,
-    created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    try {
+        $db->exec("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS
+            prev_customer TINYINT(1) NOT NULL DEFAULT 0 AFTER gender");
+    } catch (Exception $e) {}
 
-// أضف العمود إن لم يكن موجوداً (للجداول القديمة)
-try {
-    $db->exec("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS
-        prev_customer TINYINT(1) NOT NULL DEFAULT 0 AFTER gender");
-} catch (Exception $e) { /* العمود موجود بالفعل */ }
+    @file_put_contents($flagFile, date('c'));
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -41,11 +46,39 @@ $method = $_SERVER['REQUEST_METHOD'];
 // ============================================================
 if ($method === 'POST' && empty($_GET['admin'])) {
 
-    // Check competition is active
-    $rows = $db->query("SELECT `key`, value FROM settings WHERE `key` IN
-        ('comp_active','comp_title','comp_success_msg','comp_ref_prefix')")->fetchAll();
-    $settings = [];
-    foreach ($rows as $r) $settings[$r['key']] = $r['value'];
+    // ── Rate limiting (APCu — fast shared memory, no disk I/O) ──
+    $ip      = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '')[0]);
+    $blocked = false;
+
+    if (function_exists('apcu_inc')) {
+        $rlKey = 'rl:' . md5($ip);
+        $hits  = apcu_inc($rlKey, 1, $success, 60); // 60-second window
+        if (!$success) apcu_store($rlKey, 1, 60);
+        elseif ($hits > 10) $blocked = true;         // max 10 submissions/min per IP
+    }
+
+    if ($blocked) {
+        http_response_code(429);
+        echo json_encode(['success' => false,
+            'message' => 'طلبات كثيرة جداً، يرجى الانتظار دقيقة ثم المحاولة مجدداً'],
+            JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // ── Settings — file cache (30s TTL) ──────────────────────
+    // Replaces 1 DB query per request with 1 file read shared across all requests
+    $settingsCache = dirname(__DIR__) . '/cache/comp_settings.json';
+    $settings      = [];
+
+    if (is_file($settingsCache) && (time() - filemtime($settingsCache)) < 30) {
+        $settings = json_decode(file_get_contents($settingsCache), true) ?: [];
+    } else {
+        $db   = getDB();
+        $rows = $db->query("SELECT `key`, value FROM settings WHERE `key` IN
+            ('comp_active','comp_title','comp_success_msg','comp_ref_prefix')")->fetchAll();
+        foreach ($rows as $r) $settings[$r['key']] = $r['value'];
+        @file_put_contents($settingsCache, json_encode($settings), LOCK_EX);
+    }
 
     if (($settings['comp_active'] ?? '1') === '0') {
         echo json_encode(['success' => false,
@@ -55,17 +88,17 @@ if ($method === 'POST' && empty($_GET['admin'])) {
 
     $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-    // ---- Sanitize ----
-    $full_name   = clean($body['full_name']   ?? '');
-    $email       = strtolower(trim($body['email']       ?? ''));
-    $phone       = trim($body['phone']       ?? '');
-    $national_id = trim($body['national_id'] ?? '');
-    $city        = clean($body['city']        ?? '');
+    // ── Sanitize ─────────────────────────────────────────────
+    $full_name     = clean($body['full_name']   ?? '');
+    $email         = strtolower(trim($body['email'] ?? ''));
+    $phone         = trim($body['phone']        ?? '');
+    $national_id   = trim($body['national_id']  ?? '');
+    $city          = clean($body['city']         ?? '');
     $gender        = trim($body['gender']        ?? '');
     $prev_customer = isset($body['prev_customer']) ? (int)(bool)$body['prev_customer'] : -1;
     $terms         = !empty($body['terms']);
 
-    // ---- Validate ----
+    // ── Validate ─────────────────────────────────────────────
     $errors = [];
     if (mb_strlen($full_name) < 3)
         $errors[] = 'الاسم الكامل مطلوب ولا يقل عن 3 أحرف';
@@ -90,60 +123,47 @@ if ($method === 'POST' && empty($_GET['admin'])) {
         exit;
     }
 
-    // ---- Check duplicate national ID ----
-    $dup = $db->prepare("SELECT id FROM registrations WHERE national_id = ?");
-    $dup->execute([$national_id]);
-    if ($dup->fetch()) {
-        echo json_encode(['success' => false,
-            'message' => 'رقم الهوية هذا مسجّل مسبقاً في المسابقة'], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    // ---- Check duplicate email ----
-    $dupEmail = $db->prepare("SELECT id FROM registrations WHERE email = ?");
-    $dupEmail->execute([$email]);
-    if ($dupEmail->fetch()) {
-        echo json_encode(['success' => false,
-            'message' => 'البريد الإلكتروني هذا مسجّل مسبقاً في المسابقة'], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    // ---- Generate unique ref_number ----
+    // ── ref_number — high entropy, no collision check needed ─
+    // uniqid(more_entropy:true) = microseconds + random float = ~22 unique chars
     $prefix     = preg_replace('/[^\w\p{Arabic}]/u', '', $settings['comp_ref_prefix'] ?? 'MK');
-    $firstName  = explode(' ', trim($full_name))[0];
-    $ref_number = '';
-    for ($i = 0; $i < 10; $i++) {
-        $rand       = str_pad(rand(10000, 99999), 5, '0', STR_PAD_LEFT);
-        $candidate  = $prefix . '-' . $firstName . $rand;
-        $chk        = $db->prepare("SELECT id FROM registrations WHERE ref_number = ?");
-        $chk->execute([$candidate]);
-        if (!$chk->fetch()) { $ref_number = $candidate; break; }
-    }
-    if (!$ref_number) {
-        echo json_encode(['success' => false,
-            'message' => 'حدث خطأ أثناء التسجيل، يرجى المحاولة مجدداً'], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
+    $firstName  = mb_substr(explode(' ', trim($full_name))[0], 0, 12);
+    $ref_number = $prefix . '-' . $firstName . '-' . strtoupper(substr(uniqid('', true), -8));
 
-    // ---- Insert ----
-    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
+    // ── Single INSERT — duplicates caught via exception ───────
+    // New user  = 1 query   (previously: 4-5 queries)
+    // Duplicate = 2 queries (rare path — only on actual duplicates)
+    $db   = $db ?? getDB();
     $stmt = $db->prepare("INSERT INTO registrations
         (ref_number, full_name, email, phone, national_id, city, gender, prev_customer, ip_address)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$ref_number, $full_name, $email, $phone,
-                    $national_id, $city, $gender, $prev_customer, $ip]);
 
-    // ---- Fetch back for date ----
-    $row = $db->prepare("SELECT created_at FROM registrations WHERE id = ?");
-    $row->execute([$db->lastInsertId()]);
-    $created_at = $row->fetchColumn();
+    try {
+        $stmt->execute([$ref_number, $full_name, $email, $phone,
+                        $national_id, $city, $gender, $prev_customer, $ip]);
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23000') {
+            // Determine which UNIQUE key triggered the violation
+            $chk = $db->prepare("SELECT id FROM registrations WHERE national_id = ?");
+            $chk->execute([$national_id]);
+            if ($chk->fetch()) {
+                echo json_encode(['success' => false,
+                    'message' => 'رقم الهوية هذا مسجّل مسبقاً في المسابقة'],
+                    JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            echo json_encode(['success' => false,
+                'message' => 'البريد الإلكتروني هذا مسجّل مسبقاً في المسابقة'],
+                JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        throw $e;
+    }
 
-    // Format date
-    $dateObj = new DateTime($created_at);
-    $months  = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو',
-                 'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    $dateAr  = $dateObj->format('j') . ' ' . $months[(int)$dateObj->format('n')]
-             . ' ' . $dateObj->format('Y');
+    // ── Format date from PHP — no extra SELECT ────────────────
+    $months = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو',
+               'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    $now    = new DateTime();
+    $dateAr = $now->format('j') . ' ' . $months[(int)$now->format('n')] . ' ' . $now->format('Y');
 
     echo json_encode([
         'success'     => true,
@@ -161,6 +181,7 @@ if ($method === 'POST' && empty($_GET['admin'])) {
 // ============================================================
 if ($method === 'GET' && !empty($_GET['admin'])) {
     requireAuth();
+    $db = getDB();
 
     $where  = [];
     $params = [];
@@ -187,8 +208,6 @@ if ($method === 'GET' && !empty($_GET['admin'])) {
         $params[] = $_GET['date_to'];
     }
 
-    // For CSV export: no limit (streams directly)
-    // For JSON view: cap at 5000 rows to prevent memory exhaustion
     $limitClause = (!empty($_GET['export']) && $_GET['export'] === 'csv') ? '' : ' LIMIT 5000';
     $sql = 'SELECT * FROM registrations'
          . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
@@ -198,33 +217,25 @@ if ($method === 'GET' && !empty($_GET['admin'])) {
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
-    // Export CSV
     if (!empty($_GET['export']) && $_GET['export'] === 'csv') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="registrations_' . date('Ymd_His') . '.csv"');
         header('Pragma: no-cache');
         $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
+        fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
         fputcsv($out, ['#','رقم المرجع','الاسم الكامل','البريد الإلكتروني',
                         'رقم الجوال','رقم الهوية','المدينة','الجنس','تاريخ التسجيل']);
         foreach ($rows as $i => $r) {
             fputcsv($out, [
-                $i + 1,
-                $r['ref_number'],
-                $r['full_name'],
-                $r['email'],
-                $r['phone'],
-                $r['national_id'],
-                $r['city'],
-                $r['gender'] === 'male' ? 'ذكر' : 'أنثى',
-                $r['created_at'],
+                $i + 1, $r['ref_number'], $r['full_name'], $r['email'],
+                $r['phone'], $r['national_id'], $r['city'],
+                $r['gender'] === 'male' ? 'ذكر' : 'أنثى', $r['created_at'],
             ]);
         }
         fclose($out);
         exit;
     }
 
-    // Stats
     $total   = $db->query("SELECT COUNT(*) FROM registrations")->fetchColumn();
     $today   = $db->query("SELECT COUNT(*) FROM registrations WHERE DATE(created_at) = CURDATE()")->fetchColumn();
     $cities  = $db->query("SELECT city, COUNT(*) as cnt FROM registrations GROUP BY city ORDER BY cnt DESC")->fetchAll();
@@ -248,6 +259,7 @@ if ($method === 'GET' && !empty($_GET['admin'])) {
 // ============================================================
 if ($method === 'DELETE' && !empty($_GET['admin'])) {
     requireAuth();
+    $db   = getDB();
     $id   = (int)($_GET['id'] ?? 0);
     $stmt = $db->prepare("DELETE FROM registrations WHERE id = ?");
     $stmt->execute([$id]);

@@ -43,8 +43,27 @@
   </FilesMatch>
 </IfModule>
 
-# ── Keep pretty URLs working ──────────────────────────────────
+# ── Limit request body size (blocks oversized POST floods) ───
+<IfModule mod_php.c>
+  php_value post_max_size      2M
+  php_value max_input_time     10
+  php_value max_execution_time 15
+</IfModule>
+
+# ── Block direct access to cache and sensitive files ─────────
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Block access to cache directory
+  RewriteRule ^cache/ - [F,L]
+
+  # Block .htaccess/.env reads
+  RewriteRule ^\.  - [F,L]
+</IfModule>
+
+# ── Security headers ─────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>
