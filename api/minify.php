@@ -1,10 +1,7 @@
 <?php
 /**
- * Minify CSS on-the-fly with disk cache
+ * Minify CSS/JS on-the-fly with disk cache
  * Usage: /api/minify.php?f=assets/css/style.css
- *
- * JS is served as-is (gzip via .htaccess handles compression already)
- * CSS regex minification is safe; JS minification via regex risks breaking code.
  */
 
 $allowed = [
@@ -38,11 +35,12 @@ if (is_file($cacheFile) && filemtime($cacheFile) >= $srcMtime) {
     $content = file_get_contents($cacheFile);
 } else {
     $content = file_get_contents($fullPath);
-    // Only minify CSS — JS is served as-is (gzip already compresses it)
     if ($ext === 'css') {
         $content = minifyCSS($content);
-        file_put_contents($cacheFile, $content);
+    } elseif ($ext === 'js') {
+        $content = minifyJS($content);
     }
+    file_put_contents($cacheFile, $content);
 }
 
 $mime = ($ext === 'css') ? 'text/css' : 'application/javascript';
@@ -63,13 +61,23 @@ if (
 echo $content;
 
 function minifyCSS(string $css): string {
-    // Remove /* comments */
     $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
-    // Remove whitespace around special characters
     $css = preg_replace('/\s*([{}:;,>~+])\s*/', '$1', $css);
-    // Collapse whitespace
     $css = preg_replace('/\s+/', ' ', $css);
-    // Remove last semicolons before }
     $css = str_replace(';}', '}', $css);
     return trim($css);
+}
+
+function minifyJS(string $js): string {
+    // Remove block comments /* ... */ (not inside strings — safe for our codebase)
+    $js = preg_replace('!/\*[\s\S]*?\*/!', '', $js);
+    // Remove full-line // comments (lines that are only whitespace + comment)
+    $js = preg_replace('/^[ \t]*\/\/[^\n]*$/m', '', $js);
+    // Collapse runs of spaces/tabs to a single space
+    $js = preg_replace('/[ \t]+/', ' ', $js);
+    // Collapse 3+ consecutive newlines to one
+    $js = preg_replace('/\n{3,}/', "\n\n", $js);
+    // Trim leading/trailing whitespace per line
+    $js = preg_replace('/^[ \t]+|[ \t]+$/m', '', $js);
+    return trim($js);
 }
