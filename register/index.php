@@ -34,13 +34,27 @@ $isActive = $comp['active'];
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= $title ?> - مخازن العناية</title>
   <link rel="icon" type="image/x-icon" href="../favicon.jpeg" />
-  <!-- Preload LCP image (first slider frame) -->
-  <link rel="preload" as="image" href="../assets/brands/slider-4.webp" fetchpriority="high" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Critical CSS inline — header renders without blocking on style.css -->
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    img{max-width:100%;display:block}a{text-decoration:none;color:inherit}
+    .site-header{position:fixed;top:0;left:0;right:0;z-index:1000;padding:12px 20px;background:transparent;transition:background .3s ease,box-shadow .3s ease,padding .3s ease;transform:translateY(-100%)}
+    .site-header.visible{transform:translateY(0)}
+    .site-header.scrolled{background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(0,0,0,.1);padding:8px 20px}
+    .header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto}
+    .header-logo img{height:52px;width:auto}
+    .header-nav{display:flex;align-items:center;gap:6px}
+    .header-nav a{font-size:13px;font-weight:600;color:#000;padding:6px 12px;border-radius:20px}
+    @font-face{font-family:'Font Awesome 6 Free';font-style:normal;font-weight:900;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2') format('woff2')}
+    @font-face{font-family:'Font Awesome 6 Brands';font-style:normal;font-weight:400;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2') format('woff2')}
+  </style>
+  <!-- Preload LCP image (first slider frame, served at 560 px) -->
+  <link rel="preload" as="image" href="../api/img.php?src=assets/brands/slider-4.webp&w=560" fetchpriority="high" />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
-  <link rel="stylesheet" href="../api/minify.php?f=assets/css/style.css&v=3" />
-  <!-- Font Awesome subsets (smaller than all.min.css) -->
+  <!-- style.css — non-render-blocking -->
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="../api/minify.php?f=assets/css/style.css&v=3" />
+  <noscript><link rel="stylesheet" href="../api/minify.php?f=assets/css/style.css&v=3" /></noscript>
+  <!-- Font Awesome subsets (non-render-blocking) -->
   <link rel="preload" as="style"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css"
         onload="this.onload=null;this.rel='stylesheet'" />
@@ -55,11 +69,6 @@ $isActive = $comp['active'];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css" />
   </noscript>
-  <!-- font-display: swap for Font Awesome -->
-  <style>
-    @font-face{font-family:'Font Awesome 6 Free';font-style:normal;font-weight:900;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2') format('woff2')}
-    @font-face{font-family:'Font Awesome 6 Brands';font-style:normal;font-weight:400;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2') format('woff2')}
-  </style>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 
@@ -294,7 +303,7 @@ $isActive = $comp['active'];
 <header id="site-header" class="site-header visible scrolled">
   <div class="header-inner">
     <a href="../index.php" class="header-logo">
-      <img src="../logob.webp" alt="مخازن العناية" />
+      <img src="../logob.webp" alt="مخازن العناية" width="600" height="276" />
     </a>
     <nav class="header-nav">
       <a href="../index.php" style="font-size:18px;">الرئيسية</a>
@@ -323,13 +332,13 @@ $isActive = $comp['active'];
       <div class="hero-slider-track" id="slider-track">
 
         <!-- صورة 1 — غيّر الـ src بمسار صورتك -->
-        <img src="../assets/brands/slider-4.webp" alt="" loading="eager" fetchpriority="high" />
+        <img src="../api/img.php?src=assets/brands/slider-4.webp&w=560" alt="" loading="eager" fetchpriority="high" width="560" height="165" />
 
         <!-- صورة 2 -->
-        <img src="../assets/brands/slider-5.webp" alt="" loading="lazy" />
+        <img src="../api/img.php?src=assets/brands/slider-5.webp&w=560" alt="" loading="lazy" width="560" height="164" />
 
         <!-- صورة 3 -->
-        <img src="../assets/brands/slider2.webp" alt="" loading="lazy" />
+        <img src="../api/img.php?src=assets/brands/slider2.webp&w=560" alt="" loading="lazy" width="560" height="164" />
 
         <!-- لإضافة صورة جديدة انسخ السطر ↓ والصقه هنا وغيّر المسار
         <img src="../assets/slider/slide_X.webp" alt="" loading="lazy" />
@@ -492,7 +501,7 @@ $isActive = $comp['active'];
   </div>
   <div class="container">
     <div class="footer-inner">
-      <img src="../logob.webp" alt="مخازن العناية" class="footer-logo" loading="lazy" />
+      <img src="../logob.webp" alt="مخازن العناية" class="footer-logo" loading="lazy" width="600" height="276" />
       <p class="footer-copy">© 2025 مخازن العناية. جميع الحقوق محفوظة.</p>
     </div>
   </div>
@@ -509,8 +518,6 @@ const rules = {
   city:          v => v.trim().length > 0 || 'يرجى اختيار المدينة',
   gender:        () => document.querySelector('input[name="gender"]:checked')?.value
                        ? true : 'يرجى اختيار الجنس',
-  prev_customer: () => document.querySelector('input[name="prev_customer"]:checked') !== null
-                       ? true : 'يرجى الإجابة على سؤال التعامل السابق مع مخازن العناية',
   terms:         () => document.getElementById('terms').checked || 'يجب الموافقة على الشروط والأحكام',
 };
 
@@ -529,7 +536,7 @@ function showError(field, msg) {
 
 function validateAll() {
   let valid = true;
-  ['full_name','email','phone','national_id','city','gender','prev_customer','terms'].forEach(field => {
+  ['full_name','email','phone','national_id','city','gender','terms'].forEach(field => {
     const el  = document.getElementById(field);
     const res = rules[field](el ? el.value : '');
     if (res !== true) { showError(field, res); valid = false; }
