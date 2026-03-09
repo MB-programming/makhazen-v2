@@ -309,10 +309,10 @@ $isActive = $comp['active'];
         <img src="../assets/brands/slider-4.webp" alt="" loading="eager" />
 
         <!-- صورة 2 -->
-        <img src="../assets/brands/slider-5.jpeg" alt="" loading="lazy" />
+        <img src="../assets/brands/slider-5.webp" alt="" loading="lazy" />
 
         <!-- صورة 3 -->
-        <img src="../assets/brands/slider2.jpeg" alt="" loading="lazy" />
+        <img src="../assets/brands/slider2.webp" alt="" loading="lazy" />
 
         <!-- لإضافة صورة جديدة انسخ السطر ↓ والصقه هنا وغيّر المسار
         <img src="../assets/slider/slide_X.webp" alt="" loading="lazy" />
