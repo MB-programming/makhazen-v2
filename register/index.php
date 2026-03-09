@@ -34,15 +34,32 @@ $isActive = $comp['active'];
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= $title ?> - مخازن العناية</title>
   <link rel="icon" type="image/x-icon" href="../favicon.jpeg" />
+  <!-- Preload LCP image (first slider frame) -->
+  <link rel="preload" as="image" href="../assets/brands/slider-4.webp" fetchpriority="high" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
   <link rel="stylesheet" href="../api/minify.php?f=assets/css/style.css&v=3" />
+  <!-- Font Awesome subsets (smaller than all.min.css) -->
   <link rel="preload" as="style"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css"
+        onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" as="style"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css"
+        onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" as="style"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css"
         onload="this.onload=null;this.rel='stylesheet'" />
   <noscript>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css" />
   </noscript>
+  <!-- font-display: swap for Font Awesome -->
+  <style>
+    @font-face{font-family:'Font Awesome 6 Free';font-style:normal;font-weight:900;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2') format('woff2')}
+    @font-face{font-family:'Font Awesome 6 Brands';font-style:normal;font-weight:400;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2') format('woff2')}
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 
@@ -306,7 +323,7 @@ $isActive = $comp['active'];
       <div class="hero-slider-track" id="slider-track">
 
         <!-- صورة 1 — غيّر الـ src بمسار صورتك -->
-        <img src="../assets/brands/slider-4.webp" alt="" loading="eager" />
+        <img src="../assets/brands/slider-4.webp" alt="" loading="eager" fetchpriority="high" />
 
         <!-- صورة 2 -->
         <img src="../assets/brands/slider-5.webp" alt="" loading="lazy" />
