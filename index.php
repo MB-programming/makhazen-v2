@@ -165,8 +165,12 @@ $bodyCode   = $settings['body_code']   ?? '';
     <noscript>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     </noscript>
-    <link rel="preload" as="image" href="api/img.php?src=pattern-1.webp&w=1440" fetchpriority="high" />
-    <link rel="preload" as="image" href="api/img.php?src=logob.webp&w=340" fetchpriority="high" />
+    <link rel="preload" as="image" href="api/img.php?src=pattern-1.webp&w=1440&q=60" fetchpriority="high" />
+    <link rel="preload" as="image"
+      href="api/img.php?src=logob.webp&w=260"
+      imagesrcset="api/img.php?src=logob.webp&w=260 260w, api/img.php?src=logob.webp&w=520 520w"
+      imagesizes="260px"
+      fetchpriority="high" />
     <link rel="stylesheet" href="api/minify.php?f=assets/css/style.css&v=3" />
     <!-- Inline site data — zero client API requests -->
     <script>window.__DATA__ = <?= $pageData ?>;</script>
@@ -184,7 +188,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     <?php endif; ?>
     <div id="preloader" class="preloader">
       <div class="preloader-inner">
-        <img src="logob.webp" alt="مخازن العناية" class="preloader-logo" />
+        <img src="api/img.php?src=logob.webp&w=200" alt="مخازن العناية" class="preloader-logo" width="200" height="92" />
         <div class="preloader-dots">
           <span></span><span></span><span></span>
         </div>
@@ -193,7 +197,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     <header id="site-header" class="site-header">
       <div class="header-inner">
         <a href="#hero" class="header-logo">
-          <img src="logob.webp" alt="مخازن العناية" />
+          <img src="api/img.php?src=logob.webp&w=180" alt="مخازن العناية" width="180" height="83" />
         </a>
         <nav class="header-nav">
           <a href="#pranches" style="font-size:18px;">الفروع</a>
@@ -206,12 +210,15 @@ $bodyCode   = $settings['body_code']   ?? '';
     </header>
     <section id="hero" class="hero-section">
       <div class="hero-pattern-top">
-        <img src="api/img.php?src=pattern-1.webp&w=1440" alt="" aria-hidden="true" width="1440" height="400" fetchpriority="high" />
+        <img src="api/img.php?src=pattern-1.webp&w=1440&q=60" alt="" aria-hidden="true" width="1440" height="456" fetchpriority="high" />
       </div>
       <div class="hero-particles" id="hero-particles"></div>
       <div class="hero-content">
         <div class="hero-logo-wrap" id="hero-logo">
-          <img src="logob.webp" alt="مخازن العناية" class="hero-logo-img" fetchpriority="high" width="260" height="120" />
+          <img src="api/img.php?src=logob.webp&w=260"
+            srcset="api/img.php?src=logob.webp&w=260 260w, api/img.php?src=logob.webp&w=520 520w"
+            sizes="260px"
+            alt="مخازن العناية" class="hero-logo-img" fetchpriority="high" width="260" height="120" />
         </div>
         <h1 style='color:#fff' class="section-title" id="hero-tagline">
           العروض القوية ماتلقينها اون لاين <br />تشوفينها بعينك بمخازن العناية
@@ -234,7 +241,7 @@ $bodyCode   = $settings['body_code']   ?? '';
         </div>
       </div>
       <div class="hero-pattern-bottom">
-        <img src="api/img.php?src=pattern-2.webp&w=800" alt="" aria-hidden="true" width="1440" height="400" loading="lazy" />
+        <img src="api/img.php?src=pattern-2.webp&w=800&q=60" alt="" aria-hidden="true" width="800" height="253" loading="lazy" />
       </div>
     </section>
     <section id="social" class="social-section">
@@ -254,7 +261,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <section id="branches" class="branches-section">
       <div class="section-pattern-accent">
-        <img src="api/img.php?src=pattern-3.webp&w=800" alt="" aria-hidden="true" loading="lazy" />
+        <img src="api/img.php?src=pattern-3.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container" id="pranches">
         <div class="section-header">
@@ -270,7 +277,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <section id="contact" class="contact-section">
       <div class="contact-bg-pattern">
-        <img src="api/img.php?src=pattern-4.webp&w=800" alt="" aria-hidden="true" loading="lazy" />
+        <img src="api/img.php?src=pattern-4.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="contact-card" id="contact-card">
@@ -302,12 +309,12 @@ $bodyCode   = $settings['body_code']   ?? '';
         <div class="brands-grid" id="brands-grid"></div>
       </div>
       <div class="brands-pattern-bottom">
-        <img src="api/img.php?src=pattern-6.webp&w=800" alt="" aria-hidden="true" loading="lazy" />
+        <img src="api/img.php?src=pattern-6.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
     </section>
     <section id="articles" class="articles-section">
       <div class="section-pattern-accent">
-        <img src="api/img.php?src=pattern-3.webp&w=800" alt="" aria-hidden="true" loading="lazy" />
+        <img src="api/img.php?src=pattern-3.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="section-header">
@@ -320,26 +327,45 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <footer class="site-footer">
       <div class="footer-pattern">
-        <img src="api/img.php?src=pattern-5.webp&w=800" alt="" aria-hidden="true" loading="lazy" />
+        <img src="api/img.php?src=pattern-5.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="footer-inner">
-          <img src="logob.webp" alt="مخازن العناية" class="footer-logo" loading="lazy" />
+          <img src="api/img.php?src=logob.webp&w=200" alt="مخازن العناية" class="footer-logo" loading="lazy" width="200" height="92" />
           <p class="footer-copy">© 2025 مخازن العناية. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>
     <a href="https://wa.me/966920029921" target="_blank" rel="noopener noreferrer"
-      id="whatsapp-float" aria-label="تواصل معنا عبر واتساب"
-      style="position:fixed;bottom:24px;right:24px;z-index:9999;width:70px;height:70px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,211,102,0.4);transition:transform 0.3s ease,box-shadow 0.3s ease;text-decoration:none;animation:whatsapp-pulse 2s infinite;">
-      <i class="fa-brands fa-whatsapp" style="color:#fff;font-size:32px"></i>
+      id="whatsapp-float" aria-label="تواصل معنا عبر واتساب">
+      <i class="fa-brands fa-whatsapp" style="color:#fff;font-size:32px;position:relative;z-index:1"></i>
     </a>
     <style>
-      #whatsapp-float:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(37,211,102,0.6); }
+      #whatsapp-float {
+        position: fixed;
+        bottom: 24px; right: 24px; z-index: 9999;
+        width: 70px; height: 70px;
+        background: #25d366;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 12px rgba(37,211,102,0.4);
+        transition: transform 0.3s ease;
+        text-decoration: none;
+      }
+      #whatsapp-float::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: rgba(37,211,102,0.5);
+        animation: whatsapp-pulse 2s infinite;
+        will-change: transform, opacity;
+      }
+      #whatsapp-float:hover { transform: scale(1.1); }
       @keyframes whatsapp-pulse {
-        0%   { box-shadow: 0 0 0 0 rgba(37,211,102,0.5); }
-        70%  { box-shadow: 0 0 0 14px rgba(37,211,102,0); }
-        100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+        0%   { transform: scale(1);   opacity: 0.6; }
+        70%  { transform: scale(1.5); opacity: 0;   }
+        100% { transform: scale(1.5); opacity: 0;   }
       }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
