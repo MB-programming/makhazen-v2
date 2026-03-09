@@ -141,11 +141,27 @@ $settings   = $_decoded['settings'] ?? [];
 // ── Inline codes (no JS fetch needed) ────────────────────────
 $headerCode = $settings['header_code'] ?? '';
 $bodyCode   = $settings['body_code']   ?? '';
+
+// ── Inline minified CSS to eliminate render-blocking request ──
+function minifyCSS(string $css): string {
+    $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
+    $css = preg_replace('/\s*([{}:;,>~+])\s*/', '$1', $css);
+    $css = preg_replace('/\s+/', ' ', $css);
+    return trim(str_replace(';}', '}', $css));
+}
+$cssFile  = __DIR__ . '/assets/css/style.css';
+$cssCache = __DIR__ . '/cache/minify/' . md5('assets/css/style.css') . '.css';
+if (is_file($cssCache) && filemtime($cssCache) >= filemtime($cssFile)) {
+    $inlineCSS = file_get_contents($cssCache);
+} else {
+    $inlineCSS = minifyCSS(file_get_contents($cssFile));
+    file_put_contents($cssCache, $inlineCSS);
+}
 ?><!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
     <title>مخازن العناية | Makhazen Alenayah</title>
     <meta name="description" content="مخازن العناية - وجهتك الأولى للجمال والعناية. 25 فرع في أنحاء المملكة العربية السعودية." />
@@ -159,19 +175,34 @@ $bodyCode   = $settings['body_code']   ?? '';
     <noscript>
       <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
     </noscript>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <!-- FontAwesome subset: base + solid + brands only (saves ~18KB unused CSS) -->
     <link rel="preload" as="style"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css"
+      onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="preload" as="style"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css"
+      onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="preload" as="style"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css"
       onload="this.onload=null;this.rel='stylesheet'" />
     <noscript>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css" />
     </noscript>
-    <link rel="preload" as="image" href="api/img.php?src=pattern-1.webp&w=1440&q=60" fetchpriority="high" />
+    <link rel="preload" as="image" href="api/img.php?src=pattern-1.webp&w=1440&q=55" fetchpriority="high" />
     <link rel="preload" as="image"
       href="api/img.php?src=logob.webp&w=260"
       imagesrcset="api/img.php?src=logob.webp&w=260 260w, api/img.php?src=logob.webp&w=520 520w"
       imagesizes="260px"
       fetchpriority="high" />
-    <link rel="stylesheet" href="api/minify.php?f=assets/css/style.css&v=3" />
+    <!-- Inline CSS — eliminates render-blocking stylesheet request -->
+    <style><?= $inlineCSS ?>
+/* FontAwesome font-display: swap — shows fallback instead of invisible text */
+@font-face{font-family:'Font Awesome 6 Free';font-style:normal;font-weight:900;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2') format('woff2')}
+@font-face{font-family:'Font Awesome 6 Brands';font-style:normal;font-weight:400;font-display:swap;src:url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2') format('woff2')}
+</style>
     <!-- Inline site data — zero client API requests -->
     <script>window.__DATA__ = <?= $pageData ?>;</script>
     <?php if ($headerCode): ?>
@@ -210,7 +241,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </header>
     <section id="hero" class="hero-section">
       <div class="hero-pattern-top">
-        <img src="api/img.php?src=pattern-1.webp&w=1440&q=60" alt="" aria-hidden="true" width="1440" height="456" fetchpriority="high" />
+        <img src="api/img.php?src=pattern-1.webp&w=1440&q=55" alt="" aria-hidden="true" width="1440" height="456" fetchpriority="high" />
       </div>
       <div class="hero-particles" id="hero-particles"></div>
       <div class="hero-content">
@@ -241,7 +272,7 @@ $bodyCode   = $settings['body_code']   ?? '';
         </div>
       </div>
       <div class="hero-pattern-bottom">
-        <img src="api/img.php?src=pattern-2.webp&w=800&q=60" alt="" aria-hidden="true" width="800" height="253" loading="lazy" />
+        <img src="api/img.php?src=pattern-2.webp&w=800&q=45" alt="" aria-hidden="true" width="800" height="253" loading="lazy" />
       </div>
     </section>
     <section id="social" class="social-section">
@@ -261,7 +292,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <section id="branches" class="branches-section">
       <div class="section-pattern-accent">
-        <img src="api/img.php?src=pattern-3.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-3.webp&w=800&q=45" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container" id="pranches">
         <div class="section-header">
@@ -277,7 +308,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <section id="contact" class="contact-section">
       <div class="contact-bg-pattern">
-        <img src="api/img.php?src=pattern-4.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-4.webp&w=800&q=40" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="contact-card" id="contact-card">
@@ -309,12 +340,12 @@ $bodyCode   = $settings['body_code']   ?? '';
         <div class="brands-grid" id="brands-grid"></div>
       </div>
       <div class="brands-pattern-bottom">
-        <img src="api/img.php?src=pattern-6.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-6.webp&w=800&q=45" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
     </section>
     <section id="articles" class="articles-section">
       <div class="section-pattern-accent">
-        <img src="api/img.php?src=pattern-3.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-3.webp&w=800&q=45" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="section-header">
@@ -327,7 +358,7 @@ $bodyCode   = $settings['body_code']   ?? '';
     </section>
     <footer class="site-footer">
       <div class="footer-pattern">
-        <img src="api/img.php?src=pattern-5.webp&w=800&q=60" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-5.webp&w=800&q=45" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="footer-inner">
