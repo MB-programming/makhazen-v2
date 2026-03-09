@@ -224,12 +224,14 @@ if ($method === 'GET' && !empty($_GET['admin'])) {
         $out = fopen('php://output', 'w');
         fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
         fputcsv($out, ['#','رقم المرجع','الاسم الكامل','البريد الإلكتروني',
-                        'رقم الجوال','رقم الهوية','المدينة','الجنس','تاريخ التسجيل']);
+                        'رقم الجوال','رقم الهوية','المدينة','الجنس','عميل سابق','تاريخ التسجيل']);
         foreach ($rows as $i => $r) {
             fputcsv($out, [
                 $i + 1, $r['ref_number'], $r['full_name'], $r['email'],
                 $r['phone'], $r['national_id'], $r['city'],
-                $r['gender'] === 'male' ? 'ذكر' : 'أنثى', $r['created_at'],
+                $r['gender'] === 'male' ? 'ذكر' : 'أنثى',
+                $r['prev_customer'] == 1 ? 'نعم' : 'لا',
+                $r['created_at'],
             ]);
         }
         fclose($out);

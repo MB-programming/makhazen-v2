@@ -223,6 +223,64 @@
     .comp-filter-btn:hover { background: #fff; }
     .comp-export-btn { background: rgba(37,211,102,0.12); color: #25D366; border: 1px solid rgba(37,211,102,0.3); }
     .comp-export-btn:hover { background: #25D366; color: #000; }
+
+    /* ── Bulk action bar ───────────────────────────────── */
+    .bulk-bar {
+      display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 16px;
+      background: rgba(255,207,6,0.07); border-bottom: 1px solid rgba(255,207,6,0.2);
+    }
+    .bulk-bar.show { display: flex; }
+    .bulk-count { font-size: 13px; font-weight: 700; color: var(--gold); }
+    .bulk-sep { flex: 1; }
+    .bulk-btn {
+      padding: 6px 14px; border-radius: 7px; border: 1px solid transparent;
+      cursor: pointer; font-family: var(--font); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; gap: 5px; transition: all .15s;
+    }
+    .bulk-btn-del  { background: rgba(255,60,60,0.1);   color: #f55;     border-color: rgba(255,60,60,0.3);   }
+    .bulk-btn-del:hover  { background: #f55;    color: #fff; }
+    .bulk-btn-exp  { background: rgba(37,211,102,0.1); color: #25D366; border-color: rgba(37,211,102,0.3); }
+    .bulk-btn-exp:hover  { background: #25D366; color: #000; }
+    .bulk-btn-clr  { background: rgba(255,255,255,0.05); color: #aaa;  border-color: var(--border); }
+    .bulk-btn-clr:hover  { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* ── Pagination top bar ────────────────────────────── */
+    .reg-top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .per-page-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #aaa; }
+    .per-page-sel {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 7px; padding: 4px 10px; color: var(--text);
+      font-family: var(--font); font-size: 12px; cursor: pointer; outline: none;
+    }
+    .per-page-sel:focus { border-color: var(--gold); }
+    .reg-total-label { font-size: 13px; color: #888; }
+
+    /* ── Pagination bottom ────────────────────────────── */
+    .reg-pagination {
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      padding: 12px 16px; border-top: 1px solid var(--border);
+    }
+    .page-btn {
+      min-width: 32px; height: 32px; padding: 0 8px; border-radius: 7px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: #aaa; cursor: pointer; font-family: var(--font); font-size: 13px;
+      transition: all .15s; display: flex; align-items: center; justify-content: center;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .page-btn.active { background: var(--gold); color: #000; font-weight: 700; border-color: var(--gold); }
+    .page-btn:disabled { opacity: .3; cursor: default; }
+    .page-dots { color: #555; font-size: 13px; padding: 0 4px; }
+    .page-info-txt { font-size: 12px; color: #666; margin-right: auto; }
+
+    /* ── Checkbox column ──────────────────────────────── */
+    .cb-cell { width: 40px !important; text-align: center; padding: 0 8px !important; }
+    input.row-cb { accent-color: var(--gold); width: 15px; height: 15px; cursor: pointer; }
+    tr.sel-row td { background: rgba(255,207,6,0.05) !important; }
   </style>
 </head>
 <body class="dashboard-page">
@@ -893,11 +951,44 @@
         </div>
       </div><!-- /filters -->
 
+      <!-- Bulk action bar -->
+      <div class="bulk-bar" id="bulk-bar">
+        <span class="bulk-count" id="bulk-count">0 محدد</span>
+        <span class="bulk-sep"></span>
+        <button class="bulk-btn bulk-btn-exp" onclick="bulkExportCSV()">
+          <i class="fas fa-file-csv"></i> تصدير المحدد
+        </button>
+        <button class="bulk-btn bulk-btn-del" onclick="bulkDelete()">
+          <i class="fas fa-trash"></i> حذف المحدد
+        </button>
+        <button class="bulk-btn bulk-btn-clr" onclick="clearSelection()">
+          <i class="fas fa-times"></i> إلغاء التحديد
+        </button>
+      </div>
+
+      <!-- Per-page selector -->
+      <div class="reg-top-bar">
+        <div class="per-page-wrap">
+          <span>عرض</span>
+          <select class="per-page-sel" id="per-page-sel" onchange="changePerPage()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>لكل صفحة</span>
+        </div>
+        <span class="reg-total-label" id="reg-total-label"></span>
+      </div>
+
       <!-- Table -->
       <div class="table-wrap" style="border-radius:0;border:none;border-top:1px solid var(--border)">
         <table class="data-table" id="comp-table">
           <thead>
             <tr>
+              <th class="cb-cell">
+                <input type="checkbox" class="row-cb" id="select-all" onchange="toggleSelectAll(this)" title="تحديد الكل">
+              </th>
               <th>#</th>
               <th>رقم المرجع</th>
               <th>الاسم الكامل</th>
@@ -912,12 +1003,16 @@
             </tr>
           </thead>
           <tbody id="comp-tbody">
-            <tr><td colspan="11" style="text-align:center;color:#888;padding:40px">
+            <tr><td colspan="12" style="text-align:center;color:#888;padding:40px">
               جارٍ التحميل...
             </td></tr>
           </tbody>
         </table>
       </div><!-- /table-wrap -->
+
+      <!-- Pagination -->
+      <div class="reg-pagination" id="reg-pagination"></div>
+
     </div><!-- /registrations card -->
 
   </div><!-- /tab-competition -->
@@ -1019,6 +1114,16 @@ async function saveCompSettings() {
   } catch { showToast('خطأ في الاتصال', false); }
 }
 
+// ── Registrations state ───────────────────────────────────
+let allRows     = [];
+let currentPage = 1;
+let selectedIds = new Set();
+
+function getPerPage() {
+  return parseInt(document.getElementById('per-page-sel')?.value || '25');
+}
+function changePerPage() { currentPage = 1; renderCompTable(allRows); }
+
 // ── Load registrations ────────────────────────────────────
 async function loadRegistrations() {
   const search   = document.getElementById('comp-search')?.value    || '';
@@ -1035,32 +1140,35 @@ async function loadRegistrations() {
   if (dateTo)   params.set('date_to',   dateTo);
 
   const tbody = document.getElementById('comp-tbody');
-  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:#888">جارٍ التحميل...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:32px;color:#888">جارٍ التحميل...</td></tr>';
+
+  // Reset selection and page on new filter fetch
+  currentPage = 1;
+  selectedIds.clear();
+  updateBulkBar();
 
   try {
     const res  = await fetch('../api/registration.php?' + params.toString());
     const data = await res.json();
-    if (!data.success) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:#f55">خطأ في تحميل البيانات</td></tr>'; return; }
-
+    if (!data.success) {
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:24px;color:#f55">خطأ في تحميل البيانات</td></tr>';
+      return;
+    }
     renderCompStats(data.stats);
     renderCompTable(data.rows);
     updateCityFilter(data.stats.cities);
-
-    // Update badge
     const badge = document.getElementById('badge-competition');
     if (badge) badge.textContent = data.stats.total;
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:#f55">تعذّر الاتصال بالخادم</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:24px;color:#f55">تعذّر الاتصال بالخادم</td></tr>';
   }
 }
 
 function renderCompStats(stats) {
   const el = document.getElementById('comp-stats');
   if (!el) return;
-
   const male   = stats.genders.find(g => g.gender === 'male')?.cnt   || 0;
   const female = stats.genders.find(g => g.gender === 'female')?.cnt || 0;
-
   el.innerHTML = `
     <div class="cstat" style="border-color:var(--border-gold)">
       <div class="cstat-icon" style="color:var(--gold)"><i class="fas fa-users"></i></div>
@@ -1085,14 +1193,31 @@ function renderCompStats(stats) {
 }
 
 function renderCompTable(rows) {
-  const tbody = document.getElementById('comp-tbody');
+  allRows = rows;
+  const tbody  = document.getElementById('comp-tbody');
+  const perPage = getPerPage();
+
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:#888">لا توجد بيانات بهذه الفلاتر</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:32px;color:#888">لا توجد بيانات بهذه الفلاتر</td></tr>';
+    document.getElementById('reg-total-label').textContent = '';
+    document.getElementById('reg-pagination').innerHTML = '';
     return;
   }
-  tbody.innerHTML = rows.map((r, i) => `
-    <tr>
-      <td>${i + 1}</td>
+
+  const totalPages = Math.ceil(rows.length / perPage);
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start    = (currentPage - 1) * perPage;
+  const pageRows = rows.slice(start, start + perPage);
+
+  tbody.innerHTML = pageRows.map((r, i) => `
+    <tr class="${selectedIds.has(r.id) ? 'sel-row' : ''}" data-id="${r.id}">
+      <td class="cb-cell">
+        <input type="checkbox" class="row-cb" value="${r.id}"
+               ${selectedIds.has(r.id) ? 'checked' : ''}
+               onchange="toggleSelect(${r.id}, this.checked)">
+      </td>
+      <td>${start + i + 1}</td>
       <td><span style="color:var(--gold);font-weight:700;font-size:13px">${esc(r.ref_number)}</span></td>
       <td style="font-weight:600">${esc(r.full_name)}</td>
       <td style="font-size:13px;direction:ltr;text-align:right">${esc(r.email)}</td>
@@ -1118,6 +1243,143 @@ function renderCompTable(rows) {
         </button>
       </td>
     </tr>`).join('');
+
+  // Update select-all state
+  syncSelectAll(pageRows);
+
+  // Total label
+  document.getElementById('reg-total-label').textContent =
+    `${rows.length} مشارك — الصفحة ${currentPage} من ${totalPages}`;
+
+  renderPagination(rows.length, perPage, totalPages);
+}
+
+function renderPagination(total, perPage, totalPages) {
+  const pag = document.getElementById('reg-pagination');
+  if (!pag) return;
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" onclick="goToPage(${currentPage - 1})"
+    ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+      html += `<button class="page-btn ${p === currentPage ? 'active' : ''}"
+        onclick="goToPage(${p})">${p}</button>`;
+    } else if (p === currentPage - 3 || p === currentPage + 3) {
+      html += `<span class="page-dots">…</span>`;
+    }
+  }
+
+  html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})"
+    ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+
+  pag.innerHTML = html;
+}
+
+function goToPage(p) {
+  const totalPages = Math.ceil(allRows.length / getPerPage());
+  currentPage = Math.max(1, Math.min(p, totalPages));
+  renderCompTable(allRows);
+}
+
+// ── Selection helpers ─────────────────────────────────────
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  const tr = document.querySelector(`tr[data-id="${id}"]`);
+  if (tr) tr.classList.toggle('sel-row', checked);
+  syncSelectAll(currentPageRows());
+  updateBulkBar();
+}
+
+function toggleSelectAll(cb) {
+  currentPageRows().forEach(r => {
+    if (cb.checked) selectedIds.add(r.id); else selectedIds.delete(r.id);
+    const tr = document.querySelector(`tr[data-id="${r.id}"]`);
+    if (tr) {
+      tr.classList.toggle('sel-row', cb.checked);
+      const box = tr.querySelector('.row-cb');
+      if (box) box.checked = cb.checked;
+    }
+  });
+  updateBulkBar();
+}
+
+function syncSelectAll(pageRows) {
+  const sa = document.getElementById('select-all');
+  if (!sa || !pageRows.length) return;
+  const allChecked  = pageRows.every(r => selectedIds.has(r.id));
+  const someChecked = pageRows.some(r => selectedIds.has(r.id));
+  sa.checked       = allChecked;
+  sa.indeterminate = !allChecked && someChecked;
+}
+
+function currentPageRows() {
+  const perPage = getPerPage();
+  return allRows.slice((currentPage - 1) * perPage, currentPage * perPage);
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll('.row-cb').forEach(cb => {
+    cb.checked = false;
+    cb.closest('tr')?.classList.remove('sel-row');
+  });
+  const sa = document.getElementById('select-all');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar   = document.getElementById('bulk-bar');
+  const count = document.getElementById('bulk-count');
+  if (!bar) return;
+  bar.classList.toggle('show', selectedIds.size > 0);
+  if (count) count.textContent = `${selectedIds.size} محدد`;
+}
+
+// ── Bulk actions ──────────────────────────────────────────
+async function bulkDelete() {
+  if (!selectedIds.size) return;
+  if (!confirm(`حذف ${selectedIds.size} تسجيل؟ لا يمكن التراجع.`)) return;
+  const ids = [...selectedIds];
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      const res = await fetch(`../api/registration.php?admin=1&id=${id}`, { method: 'DELETE' });
+      const d   = await res.json();
+      if (!d.success) failed++;
+    } catch { failed++; }
+  }
+  selectedIds.clear();
+  showToast(
+    failed === 0
+      ? `تم حذف ${ids.length} تسجيل ✓`
+      : `تم حذف ${ids.length - failed}، فشل ${failed}`,
+    failed === 0
+  );
+  loadRegistrations();
+}
+
+function bulkExportCSV() {
+  const selected = allRows.filter(r => selectedIds.has(r.id));
+  if (!selected.length) return;
+  const headers = ['#','رقم المرجع','الاسم الكامل','البريد الإلكتروني',
+                   'رقم الجوال','رقم الهوية','المدينة','الجنس','عميل سابق','تاريخ التسجيل'];
+  const csvRows = selected.map((r, i) => [
+    i + 1, r.ref_number, r.full_name, r.email, r.phone, r.national_id, r.city,
+    r.gender === 'male' ? 'ذكر' : 'أنثى',
+    r.prev_customer == 1 ? 'نعم' : 'لا',
+    r.created_at?.slice(0, 16) || '',
+  ]);
+  const csv  = '\uFEFF' + [headers, ...csvRows]
+    .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `selected_${selected.length}_registrations.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 function updateCityFilter(cities) {
@@ -1133,7 +1395,7 @@ async function deleteRegistration(id, name) {
   try {
     const res  = await fetch(`../api/registration.php?admin=1&id=${id}`, { method: 'DELETE' });
     const data = await res.json();
-    if (data.success) { showToast('تم الحذف ✓'); loadRegistrations(); }
+    if (data.success) { selectedIds.delete(id); showToast('تم الحذف ✓'); loadRegistrations(); }
     else showToast(data.message || 'خطأ في الحذف', false);
   } catch { showToast('خطأ في الاتصال', false); }
 }
@@ -1144,14 +1406,12 @@ function exportRegistrations() {
   const gender   = document.getElementById('comp-gender')?.value    || '';
   const dateFrom = document.getElementById('comp-date-from')?.value || '';
   const dateTo   = document.getElementById('comp-date-to')?.value   || '';
-
   const params = new URLSearchParams({ admin: 1, export: 'csv' });
   if (search)   params.set('search',    search);
   if (city)     params.set('city',      city);
   if (gender)   params.set('gender',    gender);
   if (dateFrom) params.set('date_from', dateFrom);
   if (dateTo)   params.set('date_to',   dateTo);
-
   window.location.href = '../api/registration.php?' + params.toString();
 }
 
