@@ -170,12 +170,17 @@ if (is_file($cssCache) && filemtime($cssCache) >= filemtime($cssFile)) {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style"
-      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=optional"
       onload="this.onload=null;this.rel='stylesheet'" />
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=optional" rel="stylesheet" />
     </noscript>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <!-- Preload FA fonts early — removes them from critical path (was 428ms) -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2" />
     <!-- FontAwesome subset: base + solid + brands only (saves ~18KB unused CSS) -->
     <link rel="preload" as="style"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css"
@@ -209,8 +214,25 @@ if (is_file($cssCache) && filemtime($cssCache) >= filemtime($cssFile)) {
     <!-- Header code (from admin settings) -->
     <?= $headerCode ?>
     <?php endif; ?>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WZSZSGPN');</script>
+    <!-- Google Tag Manager — deferred until first interaction (saves 302ms main-thread) -->
+    <script>
+    window.dataLayer=window.dataLayer||[];
+    (function(){
+      var loaded=false;
+      function loadGTM(){
+        if(loaded)return; loaded=true;
+        var s=document.createElement('script');
+        s.src='https://www.googletagmanager.com/gtm.js?id=GTM-WZSZSGPN&l=dataLayer';
+        s.async=true; document.head.appendChild(s);
+      }
+      // Load on first user interaction
+      ['scroll','click','keydown','touchstart','mousemove'].forEach(function(e){
+        window.addEventListener(e,loadGTM,{once:true,passive:true});
+      });
+      // Fallback: load after 4s even without interaction (ensures conversion tracking)
+      setTimeout(loadGTM,4000);
+    })();
+    </script>
   </head>
   <body>
     <?php if ($bodyCode): ?>
@@ -308,7 +330,7 @@ if (is_file($cssCache) && filemtime($cssCache) >= filemtime($cssFile)) {
     </section>
     <section id="contact" class="contact-section">
       <div class="contact-bg-pattern">
-        <img src="api/img.php?src=pattern-4.webp&w=800&q=40" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
+        <img src="api/img.php?src=pattern-4.webp&w=800&q=20" alt="" aria-hidden="true" loading="lazy" width="800" height="253" />
       </div>
       <div class="container">
         <div class="contact-card" id="contact-card">
