@@ -18,6 +18,10 @@ ini_set('display_errors', 0);
 // zlib would corrupt the Content-Length header set below
 ini_set('zlib.output_compression', 0);
 
+// Bump memory limit to handle large source images (e.g. high-res logos)
+// A 10415×4802 RGBA image needs ~200 MB; default PHP limit is often 128 MB
+ini_set('memory_limit', '512M');
+
 // Allowed source files (prevent path traversal)
 $ALLOWED_EXTS = ['webp', 'jpg', 'jpeg', 'png', 'gif'];
 
